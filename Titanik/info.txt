@@ -1,0 +1,4 @@
+2) Titanic plans: https://www.encyclopedia-titanica.org/titanic-deckplans/
+3) https://towardsdatascience.com/understanding-boxplots-5e2df7bcbd51 normal distribution exp
+4) https://towardsdatascience.com/central-limit-theorem-explained-with-python-code-230884d40ce0 clt
+1)
