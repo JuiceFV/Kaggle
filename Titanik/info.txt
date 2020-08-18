@@ -1,4 +1,8 @@
 2) Titanic plans: https://www.encyclopedia-titanica.org/titanic-deckplans/
 3) https://towardsdatascience.com/understanding-boxplots-5e2df7bcbd51 normal distribution exp
 4) https://towardsdatascience.com/central-limit-theorem-explained-with-python-code-230884d40ce0 clt
-1)
+5) https://sphweb.bumc.bu.edu/otlt/mph-modules/bs/bs704_probability/BS704_Probability12.html#:~:text=The%20central%20limit%20theorem%20states,will%20be%20approximately%20normally%20distributed. )c;t
+6) https://towardsdatascience.com/central-limit-theorem-explained-with-python-code-230884d40ce0 (clt ex)
+7) https://towardsdatascience.com/p-value-basics-with-python-code-ae5316197c52 (pval)
+
+del
