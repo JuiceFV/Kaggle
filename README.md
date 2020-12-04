@@ -9,41 +9,11 @@ The reposetory itself contains all projects, competitions and datasets from [Kag
 
 ## Results
 
-## Statistics
-<div>
-<!-- amCharts javascript sources -->
-		<script type="text/javascript" src="https://www.amcharts.com/lib/3/amcharts.js"></script>
-		<script type="text/javascript" src="https://www.amcharts.com/lib/3/pie.js"></script>
-		
-		<!-- amCharts javascript code -->
-		<script type="text/javascript">
-			AmCharts.makeChart("chartdiv",
-				{
-					"type": "pie",
-					"balloonText": "[[title]]<br><span style='font-size:14px'><b>[[value]]</b> ([[percents]]%)</span>",
-					"gradientRatio": [],
-					"titleField": "category",
-					"valueField": "column-1",
-					"allLabels": [],
-					"balloon": {},
-					"legend": {
-						"enabled": true,
-						"align": "center",
-						"markerType": "circle"
-					},
-					"titles": [],
-					"dataProvider": [
-						{
-							"category": "Python",
-							"column-1": "1"
-						},
-						{
-							"category": "R",
-							"column-1": "0"
-						}
-					]
-				}
-			);
-		</script>
-<div>
+- **Titanic**: In this project I researched some linear algorithms such as **Gradient Boosting Classifier**,  **Linear Discriminant Analysis**, **Logistic Regression**, **Random Forest Classifier**, **Gaussian Naive Bayes**, **Support Vector Machine** and many others. Also, I tried to apply some statistic analysis to every issue I encountered. The best score, I recieved so far is **0.77990**. This score gives me the [Linear Discriminant Analysis](https://en.wikipedia.org/wiki/Linear_discriminant_analysis)
+
+
 ## Contributors
+
+<a href="https://github.com/JuiceFV/Kaggle/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=JuiceFV/Kaggle" />
+</a>
