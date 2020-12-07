@@ -191,9 +191,8 @@ This statement is true. To prove this I used [CLT](https://en.wikipedia.org/wiki
 ![chart7](imgs/md_chart7.png)
 
 **№ 2** This assumption is also true. To prove this I used this formula, and then via Linear Regression I calculated p-value. ([p-value calculating](https://stats.stackexchange.com/questions/352383/how-to-calculate-p-value-for-multivariate-linear-regression))
-$$
-R^2 = \frac{Var(mean) - Var(line)}{Var(mean)} = \frac{\sum_{i=1}^{i=n} {[y_i - \bar{y}]^2} - \sum_{i=1}^{i=n} {[y_i - slope]^2}}{\sum_{i=1}^{i=n} {[y_i - \bar{y}]^2}}
-$$
+
+<img src="imgs/md_rsq.png" align="center">
 
 **№ 3** Also true. The way of prove the same.
 
@@ -219,15 +218,11 @@ I assign each nan-age to the random value which lies within Confidence Interval 
 
 Let's note that the mean of the sample means is equal to the population mean.
 
-$$
-\mu_{mean} = \mu
-$$
+<img src="imgs/md_mean.png" align="center">
 
 and the sample means standard deviation is equal to the population standard deviation devided by root square of the sample size.
 
-$$
-\sigma_{mean} = \frac{\sigma}{\sqrt{n}}
-$$
+<img src="imgs/md_sigma.png" align="center">
 
 ![char8](imgs/md_chart8.png)
 ![char9](imgs/md_chart9.png)
@@ -239,17 +234,13 @@ According to the plot we maight assume that the difference between training and 
 
 Due to the [randit](https://numpy.org/doc/stable/reference/random/generated/numpy.random.randint.html) uses the uniform probability density function
 
-$$
-f(x) = \begin{cases} \frac{1}{b - a}, & x \in [a,b] \\ 0, & x \notin [a,b] \end{cases}
-$$
+<img src="imgs/md_randit_sys.png" align="center">
 
 i.e. there is equal chances for each value for both datasets within a CI. I'd like to define the better CI.
 
 And fo these purposes I have to know the Z-score our test-dataset to our train-dataset, in purpose to aware are they differs a lot. And know what exactly CI I required. To estimate z-score for each one use the formula:
 
-$$
-Z = \frac{\mu_{test} - \mu_{train}}{\frac{\sigma_{train}}{\sqrt{n}}}
-$$
+<img src="imgs/md_Z.png" align="center">
 
 ```python
 def z_score_test_train(train, test):
@@ -444,56 +435,10 @@ Due to the dataframe has non-numerical data, we need to convert it. I will drop 
 
 As I said before there are too many honorifics, and I believe it is required to split them onto groups.
 
-$$
-\text{Nobility}-
-\small
-\begin{cases}
-\textbf{Capt} - \text{Captain} \\
-\textbf{Col (Colonel}) - \text{is a senior military officer rank below the general officer ranks.} \\
-\textbf{Don} -  \text{master or owner.} \\
-\textbf{Dr} - \text{for the holder of a doctoral degree (e.g. PhD, DPhil, MD, or DO in many countries)} \\
-\textbf{Jonkheer} - \text{is an honorific in the Low Countries denoting the lowest rank within the nobility.} \\
-\textbf{Lady} - \text{term of respect for a girl or woman, the equivalent of gentleman.} \\
-\textbf{Major} - \text{is a military rank of commissioned officer status, with corresponding ranks existing in many military forces throughout the world.} \\
-\textbf{Countess} - \text{for female peers with the rank of baroness.} \\
- \textbf{Rev (Reverend)} - \text{most often placed before the names of Christian clergy and ministers.} \\
-\textbf{Sir} - \text{address for men, derived from Sire in the High Middle Ages.} \\
-\textbf{Dona} - \text{Feminine form for don (honorific).} \\ 
-\end{cases}
-$$
-
-$$
-\text{Mrs} - 
-\begin{cases}
-\textbf{Mrs} - \text{for married women who do not have another professional or academic title, an abbreviation of Mistress.}\\
-\textbf{Ms} -  \text{for women, regardless of marital status or when marital status is unknown.}\\
-\end{cases}
-$$
-
-$$
-\text{Miss} - 
-\begin{cases}
-\textbf{Mlle (Mademoiselle)} - \text{is a traditional alternative for an unmarried woman.} \\
-\textbf{Mme (Madame)} - \text{is a polite and formal form of address for women.} \\
-\textbf{Miss} - \text{for girls, unmarried women and (in the UK) married women who continue to use their maiden name.} \\
-\end{cases}
-$$
-
-$$
-\text{Master} - 
-\begin{cases}
-\textbf{Master} - \text{for boys and young men, or as a style for the heir to a Scottish peerage.} \\
-\end{cases}
-$$
-
-$$
-\text{Mr} - 
-\begin{cases}
-\textbf{Mr} - \text{for men, regardless of marital status, who do not have another professional or academic title.} \\
-\end{cases}
-$$
-
 ![chart20](imgs/md_chart20.png)
+
+
+![chart20](imgs/md_nobilities_br.png)
 ![chart21](imgs/md_chart21.png)
 
 I wanna to turn in a new parameter **"survival rate"** which represents a ratio of survived in a specific group.
@@ -688,65 +633,6 @@ Now I wanna explore these Algorithms discretely:
 
 **[Gradient Boosting](https://en.wikipedia.org/wiki/Gradient_boosting)**
 
-The algorithm bases on esamble of different algorithms, especially their bottlenecks (weak points). 
-
-"*Gradient boosting is a machine learning technique for regression and classification problems, which produces a prediction model in the form of an ensemble of weak prediction models, typically decision trees. It builds the model in a stage-wise fashion like other boosting methods do, and it generalizes them by allowing optimization of an arbitrary differentiable loss function.*" © wiki
-
-$
-\text{1. Let's define a training set } \{(x_i, y_i)\}_{i=1}^{n} \text{, a diff. loss function } L(y, F(x)) \text{ and } M \text{ itterations}. \text{ Generally, we shall to find t a function } y = F(x), \\ \text{ however, extract the exact function is virtually impossible, therefore I need to retrieve an approximate function } \hat{F}(x). \\ \text{Particularly, to do this we use the loss function } L(y, F(x)), \text{especially we attempting to minimize it, in purpose to obtain the most accurate } F(x)
-$
-
-$
-\text{2. Initialize model with a constant value. Due to the number of functions } F(x) \text{ is endless. We bound ourselfs with a function space } \\  F(x, \theta),\ \theta \in R^d,\ \text{hence } \hat{F}(x) = F(x, \hat{\theta}). \text{ So, we may define the } \hat{\theta} \text{ as:}\\
-$
-
-$$
-\hat{\theta} = arg\ min\ \mathbb{E}_{x, y}[L(y, F(x, \theta)] = \sum_{i=1}^{M}{\hat{\theta}_i}\ \text{then} \\ 
-L_{\theta}(\hat{\theta}) = \sum_{i=1}^{N}{L(y_i, F(x_i, \hat{\theta}))},
-$$
-
-$
-\text{ so let's back to the initializtion. Init a model with a constant value:} \\ 
-$
-
-$$
-\hat{\theta} = \hat{\theta}_0
-$$
-
-$
-\text{3. For m = 1 to M:} \\ \text{3.1 Compute the gradient of a function (}\nabla L(\hat{\theta})\text{) with the current }\hat{\theta} \\ 
-$
-$$
-\nabla L(\hat{\theta}) = \big[ \frac{\partial L(y, F(x, \theta))}{\partial \theta} \big]_{\theta=\hat{\theta}}
-$$
-
-$
-\text{3.2. Fit a base learne to so-called pseudo-residuals} \\
-$
-$$
-\hat{\theta}_m \leftarrow - \nabla L(\hat{\theta})
-$$
-
-$
-\text{3.3 Update current parameter's approximation } \hat{\theta} \\ 
-$
-$$
-\hat{\theta} \leftarrow \hat{\theta} + \hat{\theta}_m = \sum_{i=0}^{m}{\hat{\theta}_i}
-$$
-
-$
-\text{4. Store the final approximation} \\ 
-$
-$$
-\hat{\theta} = \sum_{i=0}^{M}{\hat{\theta}_i}
-$$
-
-$
-\text{5. Here we are, the final function is } \hat{F}(x) = F(x, \hat{\theta}) 
-$
-
-![GBC](imgs/GBC.jpg)
-
 **In:**
 ```python
 gmc_model = GradientBoostingClassifier()
@@ -761,31 +647,6 @@ round(np.mean(scores)*100, 2)
 
 **[Linear Discriminant Analysis](https://en.wikipedia.org/wiki/Linear_discriminant_analysis#:~:text=Linear%20discriminant%20analysis%20(LDA)%2C,or%20separates%20two%20or%20more)**
 
-LDA is closely related to the ANOVA and regression analysis. 
-
-Let's consider we have a training set $\{(x_i, y_i)\}_{i=1}^{n}$. As formerly stated, we have to find a function which describes dependence $y_i$ by $x_i$, where $y=f(x)$. Further, I will use the $\vec{x}$ and $y$ notions to present the $x$ training set and $y$ as class, respectively.
-
-1. Let's consider $p(\vec{x}|y = 0)$ and $p(\vec{x}|y = 1)$ are normally distributed PDFs with mean and covariance parameters $(\vec{\mu}_0, \sum_0)$ and $(\vec{\mu}_1, \sum_1)$, respectively.
-
-![ndpdfs](imgs/MultivariateNormal.png)
-
-2. The optimal way is to use [QDA](https://en.wikipedia.org/wiki/Quadratic_classifier) and check if a log of likelihood ratios is bigger than some threshold $T$. The QDA's formula is $\vec{X}^TAX + b^T\vec{X} + c$, so in our case:
-
-![QDA-LDA](imgs/QDA-LDA.png)
-
-3. However the LDA state another assumption that the class covariances are identical, so $\sum_0 = \sum_1 = \sum$ and that the covariances have full rank. In this case, several terms cancel:
-
-![cretLDA](imgs/cret.png)
-
-and the above decision criterion becomes a threshold on the dot product
-
-$$
-\vec{w} \cdot \vec{x} > c
-$$
-
-for some threshold constant c, where 
-
-![LDARES](imgs/LDA_res.png)
 
 **In:**
 ```python
@@ -800,46 +661,6 @@ round(np.mean(scores)*100, 2)
 
 **[Logistic Regression](https://en.wikipedia.org/wiki/Logistic_regression)**
 
-Logistic Regression - the model detects a probability of belonging to a class (binary class) lose/win, alive/dead, pass/fail, etc. Simplifying everything above the model returns a probability within 0 and 1, where 0 is cirtainly the first class and 1 is definitely second class. The main idea lays in the so-called log [odds ratio](https://en.wikipedia.org/wiki/Odds_ratio) 
-
-Let's consider $p$ - is the probability a passenger survived, hence the $1 - p$ is the robability a passenger died. Then we may obtain the odd:
-
-$$
-OR = \frac{p}{1-p}\ \text{in other words, odds ratio is the one, which represents quantity of positive results devided by negative ones} 
-$$
-
-So the $log$ of these ratios is just scaled ratios $\log{\frac{p}{1 - p}}$. The best representation of the logistic regression is the sigmoid function, because its dependent variable lies within 0 and 1 and it is continuous, therefore it is the best representation of the probability:
-
-$$
-sig(t) = \frac{1}{1 - e^{-t}}
-$$
-
-
-![Sigmoid](imgs/Sigmoid-function-2.svg.png)
-
-Now let's plot two charts:
-* The log odds ratio chart (the sigmoid was transformed to linear)
-* Logistic regression it-self (sigmoid)
-
-$LOGOR = \log{\frac{sig(x)}{1 - sig(x)}},\ (\forall x) [x \in X | X \in (-\infty; +\infty)]$, if it is feasible to say like that, the log odds ratios is something similar to the $corr[X,Y]$.
-
-![log-rat-log-reg](imgs/age_11_and_logs_and_probs_2.jpg)
-
-Once we transformed the sigmoid to the slope - we can extract the expression: $line(x) = coefficient + slope \cdot x$. Ofcourse the number of **slopes** depends on amount of independent variables. For instance, for the 2 independent variables the line defines as: $line = LOGOR = \log_e{\frac{p}{1 - p}} = \beta_0 + \beta_1 x_1 + \beta_2 x_2$, note: **e** is the exponent, NOT the Euler number (2,71).
-
-Decline the log:
-
-$$
-\frac{p}{1 - p} = e^{\beta_0 + \beta_1 x_1 + \beta_2 x_2}
-$$
-
-Via algebra get this:
-
-$$
-p = \frac{e^{\beta_0 + \beta_1 x_1 + \beta_2 x_2}}{e^{\beta_0 + \beta_1 x_1 + \beta_2 x_2} + 1} = \frac{1}{1 + e^{-(\beta_0 + \beta_1 x_1 + \beta_2 x_2)}}
-$$
-
-Then, the probability, that $p = 1$ (a passenger survived) is the fraction above. 
 
 **In:**
 ```python
@@ -853,22 +674,6 @@ round(np.mean(scores)*100, 2)
 
 **[Random Forest](https://en.wikipedia.org/wiki/Random_forest)**
 
-A bunch of decsisions trees, if be honest. The focal problem of a decision tree it is inaccurate, especially it perfectly works with the training data, however it is not flexible with test one. Therefor to be more accurate we use randomisation. Recall the [Monte Carlo Simulation](https://www.investopedia.com/terms/m/montecarlosimulation.asp#:~:text=A%20Monte%20Carlo%20simulation%20is,in%20prediction%20and%20forecasting%20models.), with given probabilities the expectation value ($\mathbb{E}$) converges to the mean $(\mu)$. In the random forest we use pretty similar method. Let's consider $X = \{x_i\}_{i=1}^{n}$ and $Y = \{y_i\}_{i=1}^{n}$
-
-For 1 ... B:
-1. Firstly, we shall to bootstrap a dataset. (Randomly choose an associate from a dataset and add it up to new one)$\text{Sample, with replacement, } n \text{ training examples from } X, Y; \text{ call these } X_b,\ Y_b.$
-
-2. $\text{Train a classification or regression tree } f_b, \text{ on } X_b,\ Y_b$
-
-After training, predictions for out-off-bag samples $x'$ can be made by averaging the predictions from all the individual regression trees on $x'$:
-
-$$
-\hat{f} = \frac{1}{B} \sum_{b=1}^B{f_b(x')}
-$$
-
-or by taking the majority vote in the case of classification trees.
-![rfc](imgs/rfc_vs_dt1.png)
-
 **In:**
 ```python
 rfc_model = RandomForestClassifier(n_estimators=10)
@@ -878,3 +683,6 @@ scores = cross_val_score(rfc_model, X_train, y_train, cv=K_fold,
 round(np.mean(scores)*100, 2)
 ```
 **Out:** 85.7
+
+**[Gaussian Naive Bayes](https://en.wikipedia.org/wiki/Naive_Bayes_classifier)**
+
