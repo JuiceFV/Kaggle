@@ -48,6 +48,27 @@ In our dataset we may notice some features with missing values. Here the ways to
   - [Solving missing data problem](#solving-missing-data-problem)
     - [Embarked NaN](#embarked-nan)
     - [Age NaN](#age-nan)
+    - [Statistical Analysis](#statistical-analysis)
+    - [Honorifics](#honorifics)
+    - [Fare Zeros](#fare-zeros)
+    - [Cabin NaN](#cabin-nan)
+  - [Data Analysis](#data-analysis)
+    - [Base dependecies](#base-dependecies)
+    - [More complex dependencies](#more-complex-dependencies)
+      - [A sex is influencing on the survival chances](#a-sex-is-influencing-on-the-survival-chances)
+      - [Than Higher class then higher chance to survive](#than-higher-class-then-higher-chance-to-survive)
+      - [Younger have more chances to survive rather than maturer](#younger-have-more-chances-to-survive-rather-than-maturer)
+      - [Embarked affects to the survival](#embarked-affects-to-the-survival)
+      - [Arbitrary Correlation Matrix](#arbitrary-correlation-matrix)
+      - [Honorifics analysis](#honorifics-analysis)
+      - [Distribution died and alive per sex and class](#distribution-died-and-alive-per-sex-and-class)
+      - [Survival chances depends on family's presence](#survival-chances-depends-on-familys-presence)
+      - [Family feature](#family-feature)
+    - [Statistical Analysis 2](#statistical-analysis-2)
+    - [Family presence feature](#family-presence-feature)
+    - [Cabin again](#cabin-again)
+  - [Recap of the survey](#recap-of-the-survey)
+  - [Build models](#build-models)
 
 ## Extract Data
 
@@ -156,4 +177,704 @@ Also according to the Age per Class distribution I assume that a class may "expl
 ![chart5](imgs/md_chart5.png)
 ![chart6](imgs/md_chart6.png)
 
+### Statistical Analysis
 
+I was conducting statistical analysis in purpose to prove these:
+
+1. A class reflects a social class of a passenger.
+2. The Fare doesn't explain the age
+3. The class explains only the 1/7 of the age.
+
+**№ 1**
+This statement is true. To prove this I used [CLT](https://en.wikipedia.org/wiki/Central_limit_theorem).
+
+![chart7](imgs/md_chart7.png)
+
+**№ 2** This assumption is also true. To prove this I used this formula, and then via Linear Regression I calculated p-value. ([p-value calculating](https://stats.stackexchange.com/questions/352383/how-to-calculate-p-value-for-multivariate-linear-regression))
+$$
+R^2 = \frac{Var(mean) - Var(line)}{Var(mean)} = \frac{\sum_{i=1}^{i=n} {[y_i - \bar{y}]^2} - \sum_{i=1}^{i=n} {[y_i - slope]^2}}{\sum_{i=1}^{i=n} {[y_i - \bar{y}]^2}}
+$$
+
+**№ 3** Also true. The way of prove the same.
+
+### Honorifics
+
+As many others I've noticed the [honorifics](https://en.wikipedia.org/wiki/English_honorifics). "*In the English language, an honorific is a form of address indicating respect.*" We can split a name to the three parts: **[Last name, ]** **[Honorific. ]** **[First name]** and extract honorifics as I did so. I've decided to add the Honorifics as the feature to the dataset.
+
+```python
+data_train['Honorific'] = data_train['Name'].apply(lambda str: str.split(', ')[1].split('. ')[0].split(' ')[-1])
+data_test['Honorific'] = data_test['Name'].apply(lambda str: str.split(', ')[1].split('. ')[0].split(' ')[-1])
+```
+
+**Train data**
+
+![dt2](imgs/md_dtrain_2.png)
+
+Let's plot the Age per Honorific to see if there a dependencies among them.
+
+As we may see below that the age somehow shifted, depends on the honorific. Therefore, the replacement by the mean in the each Honorific's subclass is more accurate than by the mean in the sex's (male/female) subclass or in the Pclass' subclass.
+
+But, I added another method of the replacement (may be it's not the enhancement).
+I assign each nan-age to the random value which lies within Confidence Interval  of the sample means, with Confidence Level 68%.
+
+Let's note that the mean of the sample means is equal to the population mean.
+
+$$
+\mu_{mean} = \mu
+$$
+
+and the sample means standard deviation is equal to the population standard deviation devided by root square of the sample size.
+
+$$
+\sigma_{mean} = \frac{\sigma}{\sqrt{n}}
+$$
+
+![char8](imgs/md_chart8.png)
+![char9](imgs/md_chart9.png)
+
+According to the plot we maight assume that the difference between training and test data is barely seen.
+
+![char9](imgs/md_hon.png)
+![char9](imgs/md_hon_stat.png)
+
+Due to the [randit](https://numpy.org/doc/stable/reference/random/generated/numpy.random.randint.html) uses the uniform probability density function
+
+$$
+f(x) = \begin{cases} \frac{1}{b - a}, & x \in [a,b] \\ 0, & x \notin [a,b] \end{cases}
+$$
+
+i.e. there is equal chances for each value for both datasets within a CI. I'd like to define the better CI.
+
+And fo these purposes I have to know the Z-score our test-dataset to our train-dataset, in purpose to aware are they differs a lot. And know what exactly CI I required. To estimate z-score for each one use the formula:
+
+$$
+Z = \frac{\mu_{test} - \mu_{train}}{\frac{\sigma_{train}}{\sqrt{n}}}
+$$
+
+```python
+def z_score_test_train(train, test):
+    res = []
+    tr_stat = honorific_stat_compound(train, train[train.Age.isna() == False])
+    ts_stat = honorific_stat_compound(test, test[test.Age.isna() == False])
+    for honor in ts_stat.index:
+        if honor in tr_stat['Mean'] and not np.isnan(ts_stat['Mean'][honor]) and not np.isnan(tr_stat['Sigma'][honor]):
+            res.append((ts_stat['Mean'][honor] - tr_stat['Mean'][honor])/(tr_stat['Sigma'][honor]/math.sqrt(calculate_sample_size(tr_stat['Amount'][honor]))))
+
+    return sum(res)/len(res)
+```
+Z = 0.57. We can say that 1 standard deviation is enough to encompasses both datasets.
+
+```python
+for dataset in [data_train, data_test]:
+    means, _, mean_sigma, _ = statistic_honor(data_train)
+    for honor, std in mean_sigma.items():
+        if dataset[dataset.Honorific == honor]["Age"].isnull().sum() > 0:
+            mean = means[honor]
+            null_num = dataset[dataset.Honorific == honor]["Age"].isnull().sum()
+            rand_age = np.random.randint((mean - std), (mean + std), size = null_num) if (mean-std) < (mean + std) else mean
+            age_slice = dataset[dataset.Honorific == honor]["Age"].copy()
+            age_slice[np.isnan(age_slice)] = rand_age
+            dataset.loc[dataset.Honorific == honor, 'Age'] = dataset[dataset.Honorific == honor]["Age"].fillna(age_slice)    
+```
+`statistic_honor(data_train)` - returns means, sample size, mean's sigma, honor's statistics for each honorific for every dataset.
+
+![char9](imgs/md_hon2.png)
+![char9](imgs/md_hon_stat2.png)
+
+Finally we solved the Age-NaN:) If you compare the mean and std of the Age current dataset and the [base dataset](#extract-data), you may notice that the difference is scanty (less than 1). Hence I suppose that the replacement has succeed.
+
+### Fare Zeros
+
+If we take a look at the Fare which is  lower than 6 pounds we may see that these Fare is not reliable (except 4.0125, because the lowest cost for the 3'd class was 2 pounds, according to the RUS wikipedia). We might see that the ratio of 0-Fare in the training dataset is the 2% of the entire dataset. Therefore if we replace these Fare to the mean of a passenger's class, it won't hurt somehow the dataset.
+
+```python
+data_train[data_train.Fare < 6]
+```
+
+![aa](imgs/md_unfairzero.png)
+
+As I said above the ratio of the 0-Fare to the entire dataset's shape is about 2%.
+
+```python
+data_train.groupby('Pclass')['Fare'].mean()
+```
+```
+Pclass
+1    84.154687
+2    20.662183
+3    13.675550
+Name: Fare, dtype: float64
+```
+
+Replace 0-Fare values in both datasets, with the mean value of the correspondent class
+
+```python
+for dataset in [data_train, data_test]:
+
+    m2 = dataset.Fare == 0
+    
+    avg = data_train.groupby('Pclass')['Fare'].mean()
+    dataset.loc[m2, 'Fare'] = dataset.loc[m2, 'Pclass'].map(avg)
+```
+Take a look at means after replacement:
+```python
+data_train.groupby('Pclass')['Fare'].mean()
+```
+```
+Pclass
+1    86.478188
+2    21.335950
+3    13.786960
+Name: Fare, dtype: float64
+```
+### Cabin NaN
+
+The problem is that in the **Cabin** column, virtually 80% is missing. However I've noticed some features in the Cabin column.
+
+1. **The first:** Each Cabin begins with a letter, which indicates a deck, for example A1234 says that a passenger's cabin was at the A deck.
+2. **The second:** if the last digit of a number is odd then the Cabin placed at the port side of the liner, otherwise if even then at the starboard side.
+
+However, as I said above this information doesn't matter, because we have only 1/5 of revealed data of entire dataset. Of course we may detect some dependencies, but the ratio is too little. Therefore I believe that it's not influence on model accuracy, somehow.
+
+However, I've found out that on the body of the [Herbert Cave](https://www.encyclopedia-titanica.org/titanic-victim/herbert-cave.html) was found [partial listing of first class cabin accommodation](https://www.encyclopedia-titanica.org/cave-list.html). Therefore we may assume that the passengers with known number of Cabin which not belongs the first class have to be alive. However it will be observed [further](#Cabin-again). 
+
+## Data Analysis
+
+### Base dependecies
+
+First, let's take a look to the base distributions. And make some assumptions.
+
+1. **First:** amount of died bigger than survived.
+2. **Second:** males more than females
+3. **Third:** passengers of third class more than 2 remains
+4. **Forth:** most common age [18; 35]
+5. **Fifth:** prevalent number of passengers didn't have Parent/Chiled/Siblings on the liner
+6. **Sixth:** prevalent number of passengers siled away from Southampton
+7. **Seventh:** prevalent number of passengers paid the lowest price (what explains the most of passengers were in the 3'd class)
+
+At this step we could say that the main features of a model are the sex (The captain ordered that the women and children have to be saved first) and the Cabin (where it was located).
+
+![chart10](imgs/md_chart10.png)
+![chart11](imgs/md_chart11.png)
+
+### More complex dependencies
+
+Let's contemplate what dependecies may be extracted. They may be hard to notice.
+
+1. Ascertain whether a sex affects to the survival rate. **(It does)**
+2. Does a class (Cabin location) affect to the survival rate. **(It does)**
+3. Check if the age (as digit) affects to the survival rate. **(Seems like no, it doesn't)**
+
+#### A sex is influencing on the survival chances
+
+Check the assumption, that women have more chances to survive rather than mans. (Due to captain order)
+
+***Assumption has confirmed. Women have higher survival rate.***
+
+![chart12](imgs/md_chart12.png)
+
+#### Than Higher class then higher chance to survive
+
+Let's check the ratio of died to survived in each class.
+
+***Along with the rank of class is rising, the ratio of survived passengers is increasing.***
+
+![chart13](imgs/md_chart13.png)
+
+#### Younger have more chances to survive rather than maturer
+
+I supposed that if a human is younger he is stronger, hardier, etc. However the chart shows us that it doesn't really affect.
+
+***The assumption that the age affects to survival rate is wrong. (When I say age I mean exactly age as a digit, not an age' group)*** 
+
+![chart14](imgs/md_chart14.png)
+
+#### Embarked affects to the survival
+
+First chart shows that there are some dependecies between survival rate and embarked spot. However, as I gues it depends on class and the second chart clearly shows us that my assumption is proper.
+
+![chart15](imgs/md_chart15.png)
+![chart16](imgs/md_chart16.png)
+
+#### Arbitrary Correlation Matrix
+
+Let's take a brake and look at the correlation between the current features.
+
+Summarize, the current assumption:
+
+1. Our previous assumption, regard the [passenger's class](#Than-Higher-class-then-higher-chance-to-survive) (than higher a class then higher a chance to survive) and the [sex](#A-sex-is-influencing-on-the-survival-chances) (women have higher chances to survive, because of captain order) are confirmed.
+
+2. The age, siblings and parent/child relationship make sheer low effect tot the survival rate.
+
+3. We may noticed that Pclass really close connected to the fare (ha-ha, could  it be otherwise?), than higher class (3->1) then higher cost and vise versa. 
+
+4. It seems like fare and embarked features do some effect, but I believe it is, due to the Pclass (embarked prove is [above](#Embarked-affects-to-the-survival)). From the sections above, we can ascertain that Pclass affects on survival rate (higher class - higher chances to survive) [1] and that the Pclass depends on fare (than higher fare then higher class' rank) [3]. By combining these two claims we might assume that than higher fare then higher chances to survive (exactly what the chart shows). This issue we will explore [further](#Honorifics-analysis)
+
+5. Honorific, is pretty interesting feature, according to the chart the correlation between honorific and survival rate is negative (than higher honorific then lower chance to survive). However we get this $r$ coefficient with this arrangement of honorifics:
+
+     * 0: 'Capt'
+     * 1: 'Col'
+     * 2: 'Countess'
+     * 3: 'Don'
+     * 4: 'Dr'
+     * 5: 'Jonkheer'
+     * 6: 'Lady'
+     * 7: 'Major'
+     * 8: 'Master'
+     * 9: 'Miss'
+     * 10: 'Mlle'
+     * 11: 'Mme'
+     * 12: 'Mr'
+     * 13: 'Mrs'
+     * 14: 'Ms'
+     * 15: 'Rev'
+     * 16: 'Sir'
+   
+   if we will swap the order then the coefficient become another. I soppuse we need to split this Honorifics onto the more common and discrete by each other groups. Also honorifics affects to the Age, but the issue how much it does still the same.
+   
+6. The assumption that the Age affects to the class rank is also true (on 30%), than maturer a passenger then higher rank of a class he can afford.
+
+We may emphasize another dependencies, but I do not see a reason to write them down.
+
+Due to the dataframe has non-numerical data, we need to convert it. I will drop the **PassengerId**, **Name**, **Ticket**, **Cabin** from the temporary dataset, because the do not affect directly (explicitly) to the model's accuracy.
+
+![chart17](imgs/md_chart17.png)
+
+#### Honorifics analysis
+
+As I said before there are too many honorifics, and I believe it is required to split them onto groups.
+
+$$
+\text{Nobility}-
+\small
+\begin{cases}
+\textbf{Capt} - \text{Captain} \\
+\textbf{Col (Colonel}) - \text{is a senior military officer rank below the general officer ranks.} \\
+\textbf{Don} -  \text{master or owner.} \\
+\textbf{Dr} - \text{for the holder of a doctoral degree (e.g. PhD, DPhil, MD, or DO in many countries)} \\
+\textbf{Jonkheer} - \text{is an honorific in the Low Countries denoting the lowest rank within the nobility.} \\
+\textbf{Lady} - \text{term of respect for a girl or woman, the equivalent of gentleman.} \\
+\textbf{Major} - \text{is a military rank of commissioned officer status, with corresponding ranks existing in many military forces throughout the world.} \\
+\textbf{Countess} - \text{for female peers with the rank of baroness.} \\
+ \textbf{Rev (Reverend)} - \text{most often placed before the names of Christian clergy and ministers.} \\
+\textbf{Sir} - \text{address for men, derived from Sire in the High Middle Ages.} \\
+\textbf{Dona} - \text{Feminine form for don (honorific).} \\ 
+\end{cases}
+$$
+
+$$
+\text{Mrs} - 
+\begin{cases}
+\textbf{Mrs} - \text{for married women who do not have another professional or academic title, an abbreviation of Mistress.}\\
+\textbf{Ms} -  \text{for women, regardless of marital status or when marital status is unknown.}\\
+\end{cases}
+$$
+
+$$
+\text{Miss} - 
+\begin{cases}
+\textbf{Mlle (Mademoiselle)} - \text{is a traditional alternative for an unmarried woman.} \\
+\textbf{Mme (Madame)} - \text{is a polite and formal form of address for women.} \\
+\textbf{Miss} - \text{for girls, unmarried women and (in the UK) married women who continue to use their maiden name.} \\
+\end{cases}
+$$
+
+$$
+\text{Master} - 
+\begin{cases}
+\textbf{Master} - \text{for boys and young men, or as a style for the heir to a Scottish peerage.} \\
+\end{cases}
+$$
+
+$$
+\text{Mr} - 
+\begin{cases}
+\textbf{Mr} - \text{for men, regardless of marital status, who do not have another professional or academic title.} \\
+\end{cases}
+$$
+
+![chart20](imgs/md_chart20.png)
+![chart21](imgs/md_chart21.png)
+
+I wanna to turn in a new parameter **"survival rate"** which represents a ratio of survived in a specific group.
+
+```python
+def survival_rate(data):
+    return data[data.Survived == 1].shape[0]/data.shape[0]
+```
+
+From the chart below we grasp that the lowest survival rate at the mans. Women and children have higher chances to survive. 
+
+![chart22](imgs/md_chart22.png)
+
+#### Distribution died and alive per sex and class
+Women, as we said many times before, have much higher chances to survive rather than mans. And in the 3'd class died women much more than in the 2'd and 1'st. The amount of died mans is much bigger than survived, however the difference between classes is scanty.  
+
+![chart23](imgs/md_chart23.png)
+
+#### Survival chances depends on family's presence
+
+Than intense and vibrant color on the chart below then  more data at this point (x,y).
+
+According to chart we may assume those passengers who have no parents/children and siblings have pretty equal chances to survive and die. Also those, who have a lot of children have much higher chances to die than survive.
+
+![chart23](imgs/md_chart24.png)
+
+#### Family feature
+
+I wish to set the new parameter **Family** it includes the overall amount of relatives (Parent + children + brothers + sisters + husbands + wives + etc.). I'd like to determine some dependencies thro the Family's size.
+
+Let's take a look at the portrayal of the family's effect to the survival rate. We might see that I've  wrong regarded the "equal chances" to survive/die for those who have no relatives (they survive in 30% of occurrences). Those who have 3 relatives have highest chances to survive. However we have to prove statistical significance of this values, because it's may be just an occasions, for instance, there are a few passengers with 3 relatives (and almost everybody survived), whereas those who have no relatives much prevail by their quantity.
+
+Also we may say that the women with 0-3 relatives have the much higher chances to survive. But it is also required to prove the statical significance.
+
+```python
+data_train['Family'] = data_train['Parch'] + data_train['SibSp']
+data_test['Family'] = data_test['Parch'] + data_test['SibSp']
+```
+
+![chart25](imgs/md_chart25.png)
+![chart25](imgs/md_chart26.png)
+
+### Statistical Analysis 2
+
+Almost everywhere the Logistic Regression and Linear Regression are fitted. Therefore I used simple linear regression test instead of binary logistic regression test.
+
+The base assumptions wich were established:
+
+1. A honorific class affects to the survival
+2. Family presence affects to the survival
+3. Family presence at women affects to the survival
+
+Note: I converted the data to numerical for the entire section.
+
+**№1 A honorific class affects to the survival:** Using statistical analysis I observe, that the honorific's class affects to the survival (a little bit)
+
+**№2 Family presence affects to the survival:** Using statistical analysis I observed, that the number of relatives doesn't affect to the survival.
+
+**№3 Family presence at women affects to the survival:** Using statistical analysis I observed, that women's kins prsence does affect to the survival.
+
+### Family presence feature
+
+I am baffling thro the two last hypthesis testing above. Where one says that the number of kins is nothing for the survival, in spite the second shows that for women relatives presence is affect somehow to the survival. I decided to turn in another parameter **hasFamily** - binary parameter which shows, has a passenger family or not.
+
+```python
+data_train['hasFamily'] = data_train['Family'].apply(lambda x: 1 if x > 0 else 0)
+data_test['hasFamily'] = data_test['Family'].apply(lambda x: 1 if x > 0 else 0)
+```
+
+According to the chart below we can assume that those passengers who have family get the higher chances to survive. However, the chances for both (have/haven't family) for women of the 1'st and 2'nd class are pretty equal. For the women of the 3'd class the rule: has family ==> higher chances to survive doesn't work.
+
+![chart27](imgs/md_chart27.png)
+![chart28](imgs/md_chart28.png)
+
+### Cabin again
+
+Do you still remember what we've [figured out](#Cabin-NaN)? Ok, ok, I will recall. We ascertain that on the body of the Herbert Cave was found partial listing of first class cabin accommodation. Thus we assumed that, thos passengers in dataset who have a Cabin number, and it not belongs to the first class - therefore these passengers are alive.  
+
+According to the two charts below we can say that we were right. 
+
+***Those who have Cabin's number, especially the mans of the 2'nd and 3'd classes have higher chances to survive.***
+
+```python
+data_train['NotNanCabin'] = data_train['Cabin'].apply(lambda x: 0 if x != x else 1)
+data_test['NotNanCabin'] = data_test['Cabin'].apply(lambda x: 0 if x != x else 1)
+```
+![chart29](imgs/md_chart29.png)
+![chart29](imgs/md_chart30.png)
+
+## Recap of the survey
+
+Let's summarize everything we explored.
+
+1. We've proved that a class reflects the social class of a passenger, however it isn't crucial for the Survival.
+2. Also extracted and proved that the Age depends on Pclass (at 14%)
+3. Added up new feature's variables: HonCl, hasFamily, NotNanCabin
+4. Those variables which were removed, are statistically insignificant
+
+**New variables**
+
+1. **hasFamily** - the indicator, if a passenger has family
+2. **HonCl** - Honorific Class (Nobility, Miss, Mrs, Master, Mr)
+3. **NotNanCabin** - the variable responsible for indicating is the ***Cabin*** variable is NaN.
+
+There are some features which don't (do a really small) affect to the survival rate. Firstly, I'd like to check how good the performance is with all features, then I will drop **Age**, **HonCL**, **Family** to ascertain how good it is.
+
+![chart31](imgs/md_chart31.png)
+
+## Build models
+
+The goal of the model's building is how accurate does it predict did a specific passenger survive or not. Therefore a prediction has to be binary (0 - did not survive; 1 - survived). So, for this purpose we'ill use the algorithms specified for the classification. Further, we'ill take them apart.
+
+Though, we have the test dataset provided by Kaggle, we have to split the train data onto train and test datasets, before we will apply a model to the test dataset by Kaggle. Splitting, according to the rule 80/20 
+
+```python
+X_train, X_test, y_train, y_test = train_test_split(data_train.drop('Survived', axis=1), data_train['Survived'], train_size = 0.8, random_state = 20)
+```
+
+We use the ROC and AUC metrics for the model evaluation. And in purpose to proper evaluate a model we will use the K-folds with and 10 folds.
+
+```python
+K_fold = StratifiedKFold(n_splits=10)
+```
+
+Let's choose 10 most popular Classificators.
+
+* KNN
+* AdaBoost
+* Decision Tree
+* Random Forest
+* Extra Trees
+* Support Vector Machine
+* Gradient Boosting
+* Logistic regression
+* Linear Discriminant Analysis
+* Multiple layer perceprton
+
+```python
+rs = 2
+base_models = []
+cross_validation_res = []
+cross_validation_mean = []
+cross_validation_std = []
+
+base_models.append(KNeighborsClassifier())
+base_models.append(AdaBoostClassifier(DecisionTreeClassifier(random_state=rs),random_state=2,learning_rate=0.1))
+base_models.append(DecisionTreeClassifier(random_state=rs))
+base_models.append(RandomForestClassifier(random_state=rs))
+base_models.append(ExtraTreesClassifier(random_state=rs))
+base_models.append(SVC(random_state=rs))
+base_models.append(GradientBoostingClassifier(random_state=rs))
+base_models.append(LogisticRegression(random_state = rs))
+base_models.append(LinearDiscriminantAnalysis())
+base_models.append(MLPClassifier(random_state=rs))
+```
+```python
+for model in base_models :
+    cross_validation_res.append(cross_val_score(model, X_train, y_train, scoring="roc_auc", cv=K_fold, n_jobs=4))
+```
+```python
+for cv_result in cross_validation_res:
+    cross_validation_mean.append(cv_result.mean())
+    cross_validation_std.append(cv_result.std())
+
+cross_validation_frame = pd.DataFrame(
+    {
+        "CrossValMeans": cross_validation_mean,
+        "CrossValErrors": cross_validation_std,
+        "Algorithms":[
+                     "KNeighboors",
+                     "AdaBoost", 
+                     "DecisionTree",   
+                     "RandomForest",
+                     "ExtraTrees",
+                     "SVC",
+                     "GradBoosting",                      
+                     "LogistRegr",
+                     "LinDiscrAnal",
+                     "MultiLayerPerc"]
+    })
+```
+
+![chart32](imgs/md_chart32.png)
+
+Now I wanna explore these Algorithms discretely:
+* GBC Classifier
+* Linear Discriminant Analysis
+* Logistic Regression
+* Random Forest Classifer
+* Gaussian Naive Bayes
+* Support Vectore Machine
+
+**[Gradient Boosting](https://en.wikipedia.org/wiki/Gradient_boosting)**
+
+The algorithm bases on esamble of different algorithms, especially their bottlenecks (weak points). 
+
+"*Gradient boosting is a machine learning technique for regression and classification problems, which produces a prediction model in the form of an ensemble of weak prediction models, typically decision trees. It builds the model in a stage-wise fashion like other boosting methods do, and it generalizes them by allowing optimization of an arbitrary differentiable loss function.*" © wiki
+
+$
+\text{1. Let's define a training set } \{(x_i, y_i)\}_{i=1}^{n} \text{, a diff. loss function } L(y, F(x)) \text{ and } M \text{ itterations}. \text{ Generally, we shall to find t a function } y = F(x), \\ \text{ however, extract the exact function is virtually impossible, therefore I need to retrieve an approximate function } \hat{F}(x). \\ \text{Particularly, to do this we use the loss function } L(y, F(x)), \text{especially we attempting to minimize it, in purpose to obtain the most accurate } F(x)
+$
+
+$
+\text{2. Initialize model with a constant value. Due to the number of functions } F(x) \text{ is endless. We bound ourselfs with a function space } \\  F(x, \theta),\ \theta \in R^d,\ \text{hence } \hat{F}(x) = F(x, \hat{\theta}). \text{ So, we may define the } \hat{\theta} \text{ as:}\\
+$
+
+$$
+\hat{\theta} = arg\ min\ \mathbb{E}_{x, y}[L(y, F(x, \theta)] = \sum_{i=1}^{M}{\hat{\theta}_i}\ \text{then} \\ 
+L_{\theta}(\hat{\theta}) = \sum_{i=1}^{N}{L(y_i, F(x_i, \hat{\theta}))},
+$$
+
+$
+\text{ so let's back to the initializtion. Init a model with a constant value:} \\ 
+$
+
+$$
+\hat{\theta} = \hat{\theta}_0
+$$
+
+$
+\text{3. For m = 1 to M:} \\ \text{3.1 Compute the gradient of a function (}\nabla L(\hat{\theta})\text{) with the current }\hat{\theta} \\ 
+$
+$$
+\nabla L(\hat{\theta}) = \big[ \frac{\partial L(y, F(x, \theta))}{\partial \theta} \big]_{\theta=\hat{\theta}}
+$$
+
+$
+\text{3.2. Fit a base learne to so-called pseudo-residuals} \\
+$
+$$
+\hat{\theta}_m \leftarrow - \nabla L(\hat{\theta})
+$$
+
+$
+\text{3.3 Update current parameter's approximation } \hat{\theta} \\ 
+$
+$$
+\hat{\theta} \leftarrow \hat{\theta} + \hat{\theta}_m = \sum_{i=0}^{m}{\hat{\theta}_i}
+$$
+
+$
+\text{4. Store the final approximation} \\ 
+$
+$$
+\hat{\theta} = \sum_{i=0}^{M}{\hat{\theta}_i}
+$$
+
+$
+\text{5. Here we are, the final function is } \hat{F}(x) = F(x, \hat{\theta}) 
+$
+
+![GBC](imgs/GBC.jpg)
+
+**In:**
+```python
+gmc_model = GradientBoostingClassifier()
+
+scores = cross_val_score(gmc_model, X_train, y_train, cv=K_fold,
+                       n_jobs = 4, scoring = 'roc_auc')
+
+round(np.mean(scores)*100, 2)
+```
+**Out:** 87.75
+
+
+**[Linear Discriminant Analysis](https://en.wikipedia.org/wiki/Linear_discriminant_analysis#:~:text=Linear%20discriminant%20analysis%20(LDA)%2C,or%20separates%20two%20or%20more)**
+
+LDA is closely related to the ANOVA and regression analysis. 
+
+Let's consider we have a training set $\{(x_i, y_i)\}_{i=1}^{n}$. As formerly stated, we have to find a function which describes dependence $y_i$ by $x_i$, where $y=f(x)$. Further, I will use the $\vec{x}$ and $y$ notions to present the $x$ training set and $y$ as class, respectively.
+
+1. Let's consider $p(\vec{x}|y = 0)$ and $p(\vec{x}|y = 1)$ are normally distributed PDFs with mean and covariance parameters $(\vec{\mu}_0, \sum_0)$ and $(\vec{\mu}_1, \sum_1)$, respectively.
+
+![ndpdfs](imgs/MultivariateNormal.png)
+
+2. The optimal way is to use [QDA](https://en.wikipedia.org/wiki/Quadratic_classifier) and check if a log of likelihood ratios is bigger than some threshold $T$. The QDA's formula is $\vec{X}^TAX + b^T\vec{X} + c$, so in our case:
+
+![QDA-LDA](imgs/QDA-LDA.png)
+
+3. However the LDA state another assumption that the class covariances are identical, so $\sum_0 = \sum_1 = \sum$ and that the covariances have full rank. In this case, several terms cancel:
+
+![cretLDA](imgs/cret.png)
+
+and the above decision criterion becomes a threshold on the dot product
+
+$$
+\vec{w} \cdot \vec{x} > c
+$$
+
+for some threshold constant c, where 
+
+![LDARES](imgs/LDA_res.png)
+
+**In:**
+```python
+lda_model= LinearDiscriminantAnalysis()
+
+scores = cross_val_score(lda_model, X_train, y_train, cv=K_fold,
+                       n_jobs=4, scoring='roc_auc')
+
+round(np.mean(scores)*100, 2)
+```
+**Out:** 84.86
+
+**[Logistic Regression](https://en.wikipedia.org/wiki/Logistic_regression)**
+
+Logistic Regression - the model detects a probability of belonging to a class (binary class) lose/win, alive/dead, pass/fail, etc. Simplifying everything above the model returns a probability within 0 and 1, where 0 is cirtainly the first class and 1 is definitely second class. The main idea lays in the so-called log [odds ratio](https://en.wikipedia.org/wiki/Odds_ratio) 
+
+Let's consider $p$ - is the probability a passenger survived, hence the $1 - p$ is the robability a passenger died. Then we may obtain the odd:
+
+$$
+OR = \frac{p}{1-p}\ \text{in other words, odds ratio is the one, which represents quantity of positive results devided by negative ones} 
+$$
+
+So the $log$ of these ratios is just scaled ratios $\log{\frac{p}{1 - p}}$. The best representation of the logistic regression is the sigmoid function, because its dependent variable lies within 0 and 1 and it is continuous, therefore it is the best representation of the probability:
+
+$$
+sig(t) = \frac{1}{1 - e^{-t}}
+$$
+
+
+![Sigmoid](imgs/Sigmoid-function-2.svg.png)
+
+Now let's plot two charts:
+* The log odds ratio chart (the sigmoid was transformed to linear)
+* Logistic regression it-self (sigmoid)
+
+$LOGOR = \log{\frac{sig(x)}{1 - sig(x)}},\ (\forall x) [x \in X | X \in (-\infty; +\infty)]$, if it is feasible to say like that, the log odds ratios is something similar to the $corr[X,Y]$.
+
+![log-rat-log-reg](imgs/age_11_and_logs_and_probs_2.jpg)
+
+Once we transformed the sigmoid to the slope - we can extract the expression: $line(x) = coefficient + slope \cdot x$. Ofcourse the number of **slopes** depends on amount of independent variables. For instance, for the 2 independent variables the line defines as: $line = LOGOR = \log_e{\frac{p}{1 - p}} = \beta_0 + \beta_1 x_1 + \beta_2 x_2$, note: **e** is the exponent, NOT the Euler number (2,71).
+
+Decline the log:
+
+$$
+\frac{p}{1 - p} = e^{\beta_0 + \beta_1 x_1 + \beta_2 x_2}
+$$
+
+Via algebra get this:
+
+$$
+p = \frac{e^{\beta_0 + \beta_1 x_1 + \beta_2 x_2}}{e^{\beta_0 + \beta_1 x_1 + \beta_2 x_2} + 1} = \frac{1}{1 + e^{-(\beta_0 + \beta_1 x_1 + \beta_2 x_2)}}
+$$
+
+Then, the probability, that $p = 1$ (a passenger survived) is the fraction above. 
+
+**In:**
+```python
+logit_model = LogisticRegression()
+scores = cross_val_score(logit_model, X_train, y_train, cv=K_fold, 
+                        n_jobs=4, scoring='roc_auc')
+
+round(np.mean(scores)*100, 2)
+```
+**Out:** 84.87
+
+**[Random Forest](https://en.wikipedia.org/wiki/Random_forest)**
+
+A bunch of decsisions trees, if be honest. The focal problem of a decision tree it is inaccurate, especially it perfectly works with the training data, however it is not flexible with test one. Therefor to be more accurate we use randomisation. Recall the [Monte Carlo Simulation](https://www.investopedia.com/terms/m/montecarlosimulation.asp#:~:text=A%20Monte%20Carlo%20simulation%20is,in%20prediction%20and%20forecasting%20models.), with given probabilities the expectation value ($\mathbb{E}$) converges to the mean $(\mu)$. In the random forest we use pretty similar method. Let's consider $X = \{x_i\}_{i=1}^{n}$ and $Y = \{y_i\}_{i=1}^{n}$
+
+For 1 ... B:
+1. Firstly, we shall to bootstrap a dataset. (Randomly choose an associate from a dataset and add it up to new one)$\text{Sample, with replacement, } n \text{ training examples from } X, Y; \text{ call these } X_b,\ Y_b.$
+
+2. $\text{Train a classification or regression tree } f_b, \text{ on } X_b,\ Y_b$
+
+After training, predictions for out-off-bag samples $x'$ can be made by averaging the predictions from all the individual regression trees on $x'$:
+
+$$
+\hat{f} = \frac{1}{B} \sum_{b=1}^B{f_b(x')}
+$$
+
+or by taking the majority vote in the case of classification trees.
+![rfc](imgs/rfc_vs_dt1.png)
+
+**In:**
+```python
+rfc_model = RandomForestClassifier(n_estimators=10)
+scores = cross_val_score(rfc_model, X_train, y_train, cv=K_fold, 
+                        n_jobs=4, scoring='roc_auc')
+
+round(np.mean(scores)*100, 2)
+```
+**Out:** 85.7
