@@ -218,11 +218,11 @@ I assign each nan-age to the random value which lies within Confidence Interval 
 
 Let's note that the mean of the sample means is equal to the population mean.
 
-<img src="imgs/md_mean.png" align="center">
+<image src="imgs/md_mean.png" align="center">
 
 and the sample means standard deviation is equal to the population standard deviation devided by root square of the sample size.
 
-<img src="imgs/md_sigma.png" align="center">
+<image src="imgs/md_sigma.png" align="center">
 
 ![char8](imgs/md_chart8.png)
 ![char9](imgs/md_chart9.png)
