@@ -193,9 +193,8 @@ This statement is true. To prove this I used [CLT](https://en.wikipedia.org/wiki
 **№ 2** This assumption is also true. To prove this I used this formula, and then via Linear Regression I calculated p-value. ([p-value calculating](https://stats.stackexchange.com/questions/352383/how-to-calculate-p-value-for-multivariate-linear-regression))
 
 
-<figure class="image" align="center">
+
 <image src="imgs/md_rsq.png" align="center" title="rsq">
-</figure>
 
 **№ 3** Also true. The way of prove the same.
 
