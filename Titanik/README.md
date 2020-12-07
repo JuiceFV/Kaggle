@@ -69,6 +69,9 @@ In our dataset we may notice some features with missing values. Here the ways to
     - [Cabin again](#cabin-again)
   - [Recap of the survey](#recap-of-the-survey)
   - [Build models](#build-models)
+    - [Hyperparameter Tuning](#hyperparameter-tuning)
+    - [Plotting learning curves](#plotting-learning-curves)
+  - [Submisson](#submisson)
 
 ## Extract Data
 
@@ -687,4 +690,380 @@ round(np.mean(scores)*100, 2)
 **Out:** 85.7
 
 **[Gaussian Naive Bayes](https://en.wikipedia.org/wiki/Naive_Bayes_classifier)**
+
+**In:**
+```python
+gnb_model = GaussianNB()
+
+scores = cross_val_score(gnb_model, X_train, y_train, cv=K_fold, 
+                        n_jobs=4, scoring='roc_auc')
+
+round(np.mean(scores)*100, 2)
+```
+**Out:** 82.3
+
+**[Support Vector Machine](https://en.wikipedia.org/wiki/Support_vector_machine)**
+
+**In:**
+```python
+svm_model = SVC(C=1, gamma='scale', kernel='linear')
+
+scores = cross_val_score(svm_model, X_train, y_train, cv=K_fold, 
+                        n_jobs=4, scoring='roc_auc')
+
+round(np.mean(scores)*100, 2)
+```
+**Out:** 84.03
+
+### Hyperparameter Tuning
+
+**In:**
+```python
+gbc = GradientBoostingClassifier()
+gb_param_grid = {
+              'loss' : ["deviance", "exponential"],
+              'n_estimators' : [100, 200, 300],
+              'learning_rate': [0.1, 0.05, 0.01, 0.001],
+              'max_depth': [4, 8, 16],
+              'min_samples_leaf': [100, 150, 250],
+              'max_features': [None, 0.3, 0.1]
+              }
+
+gs_gbc = GridSearchCV(gbc, param_grid = gb_param_grid, cv=K_fold, 
+                     scoring="roc_auc", n_jobs= 4, verbose = 2)
+
+gs_gbc.fit(X_train, y_train)
+gbc_best = gs_gbc.best_estimator_
+gbc_best_params = gs_gbc.best_params_
+
+gs_gbc.best_score_
+```
+
+**Out:**
+```
+Fitting 10 folds for each of 648 candidates, totalling 6480 fits
+[Parallel(n_jobs=4)]: Using backend LokyBackend with 4 concurrent workers.
+[Parallel(n_jobs=4)]: Done  58 tasks      | elapsed:    2.3s
+[Parallel(n_jobs=4)]: Done 300 tasks      | elapsed:    9.0s
+[Parallel(n_jobs=4)]: Done 706 tasks      | elapsed:   21.1s
+[Parallel(n_jobs=4)]: Done 1272 tasks      | elapsed:   37.9s
+[Parallel(n_jobs=4)]: Done 2002 tasks      | elapsed:  1.0min
+[Parallel(n_jobs=4)]: Done 2892 tasks      | elapsed:  1.4min
+[Parallel(n_jobs=4)]: Done 3946 tasks      | elapsed:  2.0min
+[Parallel(n_jobs=4)]: Done 5160 tasks      | elapsed:  2.6min
+[Parallel(n_jobs=4)]: Done 6480 out of 6480 | elapsed:  3.2min finished
+0.8760333470362539
+```
+**In:**
+```python
+rfc = RandomForestClassifier()
+
+rf_param_grid = {"max_depth": [None],
+              "min_samples_split": [2, 6, 20],
+              "min_samples_leaf": [1, 4, 16],
+              "n_estimators" :[100, 200, 300, 400],
+              "criterion": ["gini", "entropy"]}
+
+
+gs_rfc = GridSearchCV(rfc, param_grid = rf_param_grid, cv=K_fold,
+                     scoring="roc_auc", n_jobs= 4, verbose = 1)
+
+gs_rfc.fit(X_train, y_train)
+rfc_best = gs_rfc.best_estimator_
+rfc_best_params = gs_rfc.best_params_
+
+gs_rfc.best_score_
+```
+
+**Out:**
+```
+Fitting 10 folds for each of 72 candidates, totalling 720 fits
+[Parallel(n_jobs=4)]: Using backend LokyBackend with 4 concurrent workers.
+[Parallel(n_jobs=4)]: Done  42 tasks      | elapsed:    4.7s
+[Parallel(n_jobs=4)]: Done 192 tasks      | elapsed:   21.1s
+[Parallel(n_jobs=4)]: Done 442 tasks      | elapsed:   49.2s
+[Parallel(n_jobs=4)]: Done 720 out of 720 | elapsed:  1.3min finished
+0.888081954651722
+```
+
+**In:**
+```python
+logit = LogisticRegression()
+
+lr_param_grid = {"penalty" : ["l2"],
+              "tol" : [0.0001,0.0002,0.0003],
+              "max_iter": [100,200,300],
+              "C" :[0.01, 0.1, 1, 10, 100],
+              "intercept_scaling": [1, 2, 3, 4],
+              "solver":['liblinear', 'lbfgs'],
+              "verbose":[1]}
+
+
+gs_logit = GridSearchCV(logit, param_grid = lr_param_grid, cv=K_fold,
+                     scoring="roc_auc", n_jobs= 4, verbose = 2)
+
+gs_logit.fit(X_train, y_train)
+logit_best = gs_logit.best_estimator_
+logit_best_params = gs_logit.best_params_
+
+gs_logit.best_score_
+```
+
+**Out:**
+```
+Fitting 10 folds for each of 360 candidates, totalling 3600 fits
+[Parallel(n_jobs=4)]: Using backend LokyBackend with 4 concurrent workers.
+[Parallel(n_jobs=4)]: Done 128 tasks      | elapsed:    0.6s
+[Parallel(n_jobs=4)]: Done 1096 tasks      | elapsed:    5.2s
+[Parallel(n_jobs=4)]: Done 2720 tasks      | elapsed:   16.2s
+[LibLinear]
+[Parallel(n_jobs=4)]: Done 3600 out of 3600 | elapsed:   22.1s finished
+0.8502239308925356
+```
+
+**In:**
+```python
+lda = LinearDiscriminantAnalysis()
+
+lda_param_grid = {"solver" : ["svd", "lsqr"],
+              "tol" : [0.0001, 0.0002, 0.0003]}
+
+
+gs_lda = GridSearchCV(lda, param_grid = lda_param_grid, cv=K_fold,
+                     scoring="roc_auc", n_jobs= 4, verbose = 1)
+
+gs_lda.fit(X_train, y_train)
+lda_best = gs_lda.best_estimator_
+lda_best_params = gs_lda.best_params_
+
+gs_lda.best_score_
+```
+
+**Out:**
+```
+[Parallel(n_jobs=4)]: Using backend LokyBackend with 4 concurrent workers.
+[Parallel(n_jobs=4)]: Done  53 out of  60 | elapsed:    0.1s remaining:    0.0s
+Fitting 10 folds for each of 6 candidates, totalling 60 fits
+[Parallel(n_jobs=4)]: Done  60 out of  60 | elapsed:    0.1s finished
+0.8485890885600188
+```
+
+**In:**
+```python
+# Best params, previously checked: {'C': 200, 'gamma': 0.0001, 'kernel': 'linear'}
+
+svm = SVC(probability=True, cache_size=7000)
+svc_param_grid = {'kernel': ["linear", "rbf"], 
+                  'gamma': [0.0001, 0.001, 0.01, 0.1, 1],
+                  'C': [1, 10, 50, 100, 200, 300]}
+
+gs_svm = GridSearchCV(svm, param_grid=svc_param_grid, cv=K_fold,
+                      scoring="roc_auc", n_jobs=-1, verbose = 10)
+
+gs_svm.fit(X_train, y_train)
+
+svm_best = gs_svm.best_estimator_
+svm_best_params = gs_svm.best_params_
+
+# Best score 0.8487653388816179
+gs_svm.best_score_
+```
+**Out:**
+![6hsvm](imgs/6hourssvc.png)
+
+```python
+best_classifiers = {
+    'classifiers': [gbc_best, rfc_best, logit_best, lda_best, svm_best],
+    'classifiers_names': [
+        'Gradient Boosting', 
+         'Random Forest',
+         'Logistic Regression',
+         'Linear Discriminant Analysis',
+         'Support Vector Machine'
+        ],
+    'classifiers_colors': ['#3366E6', '#ff0088', '#00ffbf', '#00a310', '#ffcc00'],
+    'classifiers_params': {
+        'Gradient Boosting': gbc_best_params, 
+        'Random Forest': rfc_best_params, 
+        'Logistic Regession': logit_best_params, 
+        'Linear Discriminant Analysis': lda_best_params, 
+        'Support Vector Machine': svm_best_params
+    }
+}
+```
+
+![roc](imgs/md_chart33.png)
+
+```python
+best_classifiers['classifiers_params']
+```
+
+```
+{'Gradient Boosting': 
+    {
+        'learning_rate': 0.1,
+        'loss': 'deviance',
+        'max_depth': 4,
+        'max_features': None,
+        'min_samples_leaf': 100,
+        'n_estimators': 300
+    },
+ 'Random Forest': 
+    {
+        'criterion': 'gini',
+        'max_depth': None,
+        'min_samples_leaf': 4,
+        'min_samples_split': 6,
+        'n_estimators': 100
+    },
+ 'Logistic Regession': 
+    {
+        'C': 1,
+        'intercept_scaling': 1,
+        'max_iter': 100,
+        'penalty': 'l2',
+        'solver': 'liblinear',
+        'tol': 0.0001,
+        'verbose': 1
+    },
+ 'Linear Discriminant Analysis': 
+    {
+        'solver': 'svd',
+        'tol': 0.0001
+    },
+ 'Support Vector Machine': 
+    {
+        'C': 200,
+        'gamma': 0.0001, 
+        'kernel': 'linear'
+    }
+}
+```
+
+### Plotting learning curves
+
+```python
+def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None, n_jobs=1, train_sizes=np.linspace(.1, 1.0, 5)):
+    """
+    Generate a simple plot of the test and traning learning curve.
+
+    Parameters
+    ----------
+    estimator : object type that implements the "fit" and "predict" methods
+        An object of that type which is cloned for each validation.
+
+    title : string
+        Title for the chart.
+
+    X : array-like, shape (n_samples, n_features)
+        Training vector, where n_samples is the number of samples and
+        n_features is the number of features.
+
+    y : array-like, shape (n_samples) or (n_samples, n_features), optional
+        Target relative to X for classification or regression;
+        None for unsupervised learning.
+
+    ylim : tuple, shape (ymin, ymax), optional
+        Defines minimum and maximum yvalues plotted.
+
+    cv : integer, cross-validation generator, optional
+        If an integer is passed, it is the number of folds (defaults to 3).
+        Specific cross-validation objects can be passed, see
+        sklearn.cross_validation module for the list of possible objects
+
+    n_jobs : integer, optional
+        Number of jobs to run in parallel (default 1).
+        
+    x1 = np.linspace(0, 10, 8, endpoint=True) produces
+        8 evenly spaced points in the range 0 to 10
+    """
+    
+    
+    plt.figure(figsize=(16,9))
+    plt.xlabel("Training examples", fontsize=16)
+    plt.ylabel("Score", fontsize=16)
+    plt.title(title, fontsize=20)
+    if ylim is not None:
+        plt.ylim(*ylim)
+        
+    train_sizes, train_scores, test_scores = learning_curve(
+        estimator, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)
+    train_scores_mean = np.mean(train_scores, axis=1)
+    train_scores_std = np.std(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+    test_scores_std = np.std(test_scores, axis=1)
+    plt.grid()
+
+    plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
+                     train_scores_mean + train_scores_std, alpha=0.1,
+                     color="r")
+    plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
+                     test_scores_mean + test_scores_std, alpha=0.1, color="g")
+    plt.plot(train_sizes, train_scores_mean, 'o-', color="r",
+             label="Training score")
+    plt.plot(train_sizes, test_scores_mean, 'o-', color="g",
+             label="Cross-validation score")
+
+    plt.legend(loc="best", fontsize=14)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    return plt
+```
+
+![chart34](imgs/md_chart34.png)
+![chart35](imgs/md_chart35.png)
+![chart36](imgs/md_chart36.png)
+![chart37](imgs/md_chart37.png)
+![chart38](imgs/md_chart38.png)
+
+**In:**
+```python
+VotingPredictor = VotingClassifier(estimators =
+                           [('lda', lda_best), 
+                            ('logit', logit_best)],
+                           voting='soft', n_jobs = 4)
+
+VotingPredictor = VotingPredictor.fit(X_train, y_train)
+
+scores = cross_val_score(VotingPredictor, X_train, y_train, cv = K_fold,
+                       n_jobs = 4, scoring = 'roc_auc')
+
+print(scores)
+print(round(np.mean(scores)*100, 2))
+```
+
+**Out:**
+```
+[0.78652597 0.80844156 0.86700337 0.83670034 0.94234007 0.78493266
+ 0.82912458 0.94850498 0.84966777 0.85257475]
+85.06
+```
+
+![chart39](imgs/md_chart39.png)
+
+```python
+data_test, rels = categorical_to_numeric(data_test, drop=['Name', 'Ticket', 'Cabin', 'SibSp', 'Parch', 'Honorific'])
+```
+```python
+p_ids = data_test.PassengerId
+data_test = data_test.drop(columns=['PassengerId'], axis=1)
+```
+
+## Submisson
+
+```python
+Predictive_Model = pd.DataFrame({
+        "PassengerId": p_ids,
+        "Survived": VotingPredictor.predict(data_test)})
+
+Predictive_Model.to_csv('result.csv', index=False)
+```
+```python
+submission = pd.read_csv('result.csv')
+submission.head()
+```
+
+![sub](imgs/md_sub.png)
+
+
 
