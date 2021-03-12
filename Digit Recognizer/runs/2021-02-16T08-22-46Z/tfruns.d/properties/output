@@ -1,0 +1,59 @@
+
+> library(keras)
+
+> ubyte_data <- FALSE
+
+> label_index <- 1
+
+> if (ubyte_data) {
++     load_image_file <- function(filename) {
++         ret = list()
++         f = file(filename, "rb")
++         readBin(f, "inte ..." ... [TRUNCATED] 
+
+> if (ubyte_data) {
++     train <- load_image_file("data/train-images.idx3-ubyte")
++     train$label = as.factor(load_label_file("data/train-labels.id ..." ... [TRUNCATED] 
+
+> train_split_index <- createDataPartition(train$label, 
++     p = 0.8, list = FALSE)
+
+> train_split <- train[train_split_index, ]
+
+> test_split <- train[-train_split_index, ]
+
+> X_train <- data.matrix(train_split[-label_index])/255
+
+> X_test <- data.matrix(test_split[-label_index])/255
+
+> Y_train <- to_categorical(train_split$label, 10)
+
+> Y_test <- to_categorical(test_split$label, 10)
+
+> X_train_cnn <- array_reshape(X_train, c(-1, 28, 28, 
++     1))
+
+> X_test_cnn <- array_reshape(X_test, c(-1, 28, 28, 
++     1))
+
+> FLAGS <- flags(flag_numeric("dropout", 0.5), flag_numeric("lambda", 
++     1e-04))
+
+> model_cnn <- keras_model_sequential() %>% layer_conv_2d(filters = 20, 
++     kernel_size = c(5, 5), activation = "relu", input_shape = c(28, 
++      .... [TRUNCATED] 
+
+> model_cnn %>% compile(loss = "categorical_crossentropy", 
++     optimizer = optimizer_rmsprop(), metrics = c("accuracy"))
+
+> set.seed(42)
+
+> history <- model_cnn %>% fit(X_train_cnn, Y_train, 
++     epochs = 30, batch_size = 100, validation_data = list(X_test_cnn, 
++         Y_test), verb .... [TRUNCATED] 
+
+> plot(history)
+
+> evaluate(model_cnn, X_test_cnn, Y_test)
+      loss   accuracy 
+0.05347398 0.99059302 
